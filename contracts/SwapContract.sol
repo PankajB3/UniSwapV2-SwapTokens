@@ -237,6 +237,15 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
     ) external;
 }
 
+// creating interface for WETH
+interface IWETH9{
+    function deposit() external payable;
+    function approve(address guy, uint wad) external returns (bool);
+    function withdraw(uint wad) external;
+    function transferFrom(address src, address dst, uint wad) external returns (bool);
+}
+
+
 contract SwapContract {
     // address private Factory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
     // address private Router = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
@@ -257,9 +266,6 @@ contract SwapContract {
         path.push(usdcAddr);
         path.push(usdtAddr);
         path.push(daiAddr);
-        addNewLiquidity(weth9, daiAddr);
-        addNewLiquidity(weth9, usdcAddr);
-        addNewLiquidity(weth9, usdtAddr);
     }
 
     // function createNewPair(address tokenA, address tokenB) external returns(address){
@@ -267,7 +273,20 @@ contract SwapContract {
     //    return addr;
     // }
 
-    function addNewLiquidity(address tokenA, address tokenB)
+    modifier onlyOwner(){
+        require(msg.sender==0x346F2a7396F8C6aa977f4B3668B1FFB15fa9C56e,"Only Owner Can call this function");
+        _;
+    }
+
+    function withdrawEth() external onlyOwner{
+        IWETH9(weth9).withdraw(1);
+    }
+
+    function addWeth()external payable{
+        IWETH9(weth9).deposit();
+    }
+
+    function addNewLiquidity(address tokenB)
         public
         returns (
             uint256,
@@ -281,26 +300,28 @@ contract SwapContract {
         // IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
         // IERC20(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
 
-        // amountADesired = amountBDesired = 10 (HARD CODED)
+        // amountTokenDesired = 10, amountTokenMin = 1, amountETHMin = 1
 
-        IERC20(tokenA).approve(Router, 10);
+        // IERC20(tokenA).approve(Router, 10);
+        
         IERC20(tokenB).approve(Router, 10);
+        IWETH9(weth9).transferFrom(msg.sender, address(this),1);
+        IWETH9(weth9).approve(Router, 100);
+
 
         (
-            uint256 amountA,
-            uint256 amountB,
+            uint256 amountToken,
+            uint256 amountETH,
             uint256 liquidity
-        ) = IUniswapV2Router02(Router).addLiquidity(
-                tokenA,
+        ) = IUniswapV2Router02(Router).addLiquidityETH(
                 tokenB,
-                10,
                 10,
                 1,
                 1,
                 address(this),
                 block.timestamp + 15 minutes
             );
-        return (amountA, amountB, liquidity);
+        return (amountToken, amountETH, liquidity);
     }
 
     receive() external payable {}
@@ -315,70 +336,68 @@ contract SwapContract {
             uint256[] memory
         )
     {
-        uint256[] memory arr;
+      
 
         uint256 value = msg.value;
-        uint256 i = 0;
+        uint256 usdcAmt = value/3;
+        uint256 usdtAmt = value/3;
+        uint256 daiAmt = value-(usdcAmt + usdtAmt);
 
-        if (value % 3 != 0) {
-            while (value > 0 && i <= 1) {
-                uint256 amt = value / 3;
-                arr[i] = amt;
-                value -= amt;
-                i++;
-            }
-            arr[2] = value;
-        } else {
-            while (value > 0) {
-                uint256 amt = value / 3;
-                arr[i] = amt;
-                value -= amt;
-                i++;
-            }
-        }
-        uint256[] memory amtToUSDC = ethToDAI(path, arr[0]);
-        uint256[] memory amtToUSDT = ethToUSDT(path, arr[1]);
-        uint256[] memory amtToDAI = ethToUSDC(path, arr[2]);
+        uint256[] memory amtToUSDC = ethToDAI(weth9,path[3], daiAmt);
+        uint256[] memory amtToUSDT = ethToUSDT(weth9,path[2], usdtAmt);
+        uint256[] memory amtToDAI = ethToUSDC(weth9,path[1], usdcAmt);
 
         return (amtToDAI, amtToUSDC, amtToUSDT);
     }
 
-    function ethToDAI(address[] memory arr, uint256 amt)
+    function ethToDAI(address weth, address dai, uint256 amt)
         internal
         returns (uint256[] memory)
     {
+        address[] memory path1;
+        path.push(weth); 
+        path.push(dai);
+        uint256[] memory amountOutMin = IUniswapV2Router02(Router).getAmountsOut(amt, path);
         uint256[] memory resAmt = IUniswapV2Router02(Router)
             .swapExactETHForTokens(
-                amt,
-                arr,
+                amountOutMin[0],
+                path1,
                 address(this),
                 block.timestamp + 30 minutes
             );
         return resAmt;
     }
 
-    function ethToUSDT(address[] memory arr, uint256 amt)
+    function ethToUSDT(address weth, address usdt, uint256 amt)
         internal
         returns (uint256[] memory)
     {
+        address[] memory path1;
+        path.push(weth); 
+        path.push(usdt);
+        uint256[] memory amountOutMin = IUniswapV2Router02(Router).getAmountsOut(amt, path);
         uint256[] memory resAmt = IUniswapV2Router02(Router)
             .swapExactETHForTokens(
-                amt,
-                arr,
+                amountOutMin[0],
+                path1,
                 address(this),
                 block.timestamp + 30 minutes
             );
         return resAmt;
     }
 
-    function ethToUSDC(address[] memory arr, uint256 amt)
+    function ethToUSDC(address weth, address usdc, uint256 amt)
         internal
         returns (uint256[] memory)
     {
+        address[] memory path1;
+        path.push(weth); 
+        path.push(usdc);
+        uint256[] memory amountOutMin = IUniswapV2Router02(Router).getAmountsOut(amt, path);   
         uint256[] memory resAmt = IUniswapV2Router02(Router)
             .swapExactETHForTokens(
-                amt,
-                arr,
+                amountOutMin[0],
+                path1,
                 address(this),
                 block.timestamp + 30 minutes
             );
