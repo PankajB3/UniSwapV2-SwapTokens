@@ -294,7 +294,7 @@ contract SwapContract {
             uint256
         )
     {
-        // here amountAMin = amountBMin = 1
+        
         // deadline = block.timestamp
 
         // IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
@@ -306,7 +306,7 @@ contract SwapContract {
         
         IERC20(tokenB).approve(Router, 10);
         IWETH9(weth9).transferFrom(msg.sender, address(this),1);
-        IWETH9(weth9).approve(Router, 100);
+        IWETH9(weth9).approve(Router,1);
 
 
         (
