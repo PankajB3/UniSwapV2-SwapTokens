@@ -242,15 +242,24 @@ contract SwapContract {
     // address private Router = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address private Factory;
     address private Router;
+    address private weth9 = 0xc778417E063141139Fce010982780140Aa0cD5Ab;
     address[] private path;
-    constructor(address _factory, address _router, address usdtAddr, address usdcAddr, address daiAddr) {
-        Factory = _factory;
-        Router = _router;
-         //    create path
-        path[0] = 0xc778417E063141139Fce010982780140Aa0cD5Ab;   //   WETH9(Rinkeby)
-        path[1] = usdcAddr;
-        path[2] = usdtAddr;
-        path[3] = daiAddr;
+
+    constructor(
+        address usdtAddr,
+        address usdcAddr,
+        address daiAddr
+    ) {
+        Factory = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+        Router = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+        //    create path
+        path.push(weth9); //   WETH9(Rinkeby)
+        path.push(usdcAddr);
+        path.push(usdtAddr);
+        path.push(daiAddr);
+        addNewLiquidity(weth9, daiAddr);
+        addNewLiquidity(weth9, usdcAddr);
+        addNewLiquidity(weth9, usdtAddr);
     }
 
     // function createNewPair(address tokenA, address tokenB) external returns(address){
@@ -258,12 +267,7 @@ contract SwapContract {
     //    return addr;
     // }
 
-    function addNewLiquidity(
-        address tokenA,
-        address tokenB,
-        uint256 amountADesired,
-        uint256 amountBDesired
-    )
+    function addNewLiquidity(address tokenA, address tokenB)
         public
         returns (
             uint256,
@@ -274,10 +278,13 @@ contract SwapContract {
         // here amountAMin = amountBMin = 1
         // deadline = block.timestamp
 
-        IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
-        IERC20(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
-        IERC20(tokenA).approve(Router, amountADesired);
-        IERC20(tokenB).approve(Router, amountBDesired);
+        // IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
+        // IERC20(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
+
+        // amountADesired = amountBDesired = 10 (HARD CODED)
+
+        IERC20(tokenA).approve(Router, 10);
+        IERC20(tokenB).approve(Router, 10);
 
         (
             uint256 amountA,
@@ -286,8 +293,8 @@ contract SwapContract {
         ) = IUniswapV2Router02(Router).addLiquidity(
                 tokenA,
                 tokenB,
-                amountADesired,
-                amountBDesired,
+                10,
+                10,
                 1,
                 1,
                 address(this),
@@ -299,53 +306,84 @@ contract SwapContract {
     receive() external payable {}
 
     // ether i/p
-    function swapMyEth() external payable returns (uint256[] memory, uint256[] memory, uint256[] memory) {
+    function swapMyEth()
+        external
+        payable
+        returns (
+            uint256[] memory,
+            uint256[] memory,
+            uint256[] memory
+        )
+    {
         uint256[] memory arr;
-       
+
         uint256 value = msg.value;
         uint256 i = 0;
 
-       if(value % 3 != 0){
-            while (value > 0 && i<=1) {
-            uint256 amt = value / 3;
-            arr[i] = amt;
-            value -= amt;
-            i++;
-        }
-        arr[2] = value;
-       }else{
+        if (value % 3 != 0) {
+            while (value > 0 && i <= 1) {
+                uint256 amt = value / 3;
+                arr[i] = amt;
+                value -= amt;
+                i++;
+            }
+            arr[2] = value;
+        } else {
             while (value > 0) {
                 uint256 amt = value / 3;
                 arr[i] = amt;
                 value -= amt;
                 i++;
             }
-       }
-       uint256[] memory amtToUSDC =   ethToDAI(path, arr[0]);
-        uint256[] memory amtToUSDT =  ethToDAI(path, arr[1]);       
-       uint256[] memory amtToDAI =   ethToDAI(path, arr[2]);
+        }
+        uint256[] memory amtToUSDC = ethToDAI(path, arr[0]);
+        uint256[] memory amtToUSDT = ethToUSDT(path, arr[1]);
+        uint256[] memory amtToDAI = ethToUSDC(path, arr[2]);
 
         return (amtToDAI, amtToUSDC, amtToUSDT);
     }
-    function ethToDAI(address[] memory arr, uint256 amt) internal returns(uint256[] memory){
-         uint256[] memory resAmt =  IUniswapV2Router02(Router).swapExactETHForTokens(
-            amt, arr, address(this), block.timestamp + 30 minutes
-        );
-        return resAmt;
-    }
-    function ethToUSDT(address[] memory arr, uint256 amt) internal returns(uint256[] memory){
-        uint256[] memory resAmt =  IUniswapV2Router02(Router).swapExactETHForTokens(
-            amt, arr, address(this), block.timestamp + 30 minutes
-        );
-        return resAmt;
-    }    
-    function ethToUSDC(address[] memory arr, uint256 amt) internal returns(uint256[] memory){
-         uint256[] memory resAmt =  IUniswapV2Router02(Router).swapExactETHForTokens(
-            amt, arr, address(this), block.timestamp + 30 minutes
-        );
-        return resAmt;
-    }
-    function getMyReward(address user) external{
 
+    function ethToDAI(address[] memory arr, uint256 amt)
+        internal
+        returns (uint256[] memory)
+    {
+        uint256[] memory resAmt = IUniswapV2Router02(Router)
+            .swapExactETHForTokens(
+                amt,
+                arr,
+                address(this),
+                block.timestamp + 30 minutes
+            );
+        return resAmt;
     }
+
+    function ethToUSDT(address[] memory arr, uint256 amt)
+        internal
+        returns (uint256[] memory)
+    {
+        uint256[] memory resAmt = IUniswapV2Router02(Router)
+            .swapExactETHForTokens(
+                amt,
+                arr,
+                address(this),
+                block.timestamp + 30 minutes
+            );
+        return resAmt;
+    }
+
+    function ethToUSDC(address[] memory arr, uint256 amt)
+        internal
+        returns (uint256[] memory)
+    {
+        uint256[] memory resAmt = IUniswapV2Router02(Router)
+            .swapExactETHForTokens(
+                amt,
+                arr,
+                address(this),
+                block.timestamp + 30 minutes
+            );
+        return resAmt;
+    }
+
+    function getMyReward(address user) external {}
 }
