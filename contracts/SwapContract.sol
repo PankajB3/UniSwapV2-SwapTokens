@@ -305,7 +305,7 @@ contract SwapContract {
         // IERC20(tokenA).approve(Router, 10);
         
         IERC20(tokenB).approve(Router, 10);
-        IWETH9(weth9).transferFrom(msg.sender, address(this),1);
+        // IWETH9(weth9).transferFrom(msg.sender, address(this),1);
         IWETH9(weth9).approve(Router,1);
 
 
