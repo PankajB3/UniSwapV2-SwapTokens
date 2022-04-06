@@ -87,13 +87,13 @@ module.exports = {
     //   accounts: [process.env.PRIVATE_KEY],
     //   gas: 2100000,
     //   gasPrice: 25000000000
-    // },
-    gasReporter: {
-      enabled: process.env.REPORT_GAS !== undefined,
-      currency: "USD",
-    },
-    etherscan: {
-      apiKey: process.env.ETHERSCAN_API_KEY,
-    },
+    // }
   },
-}
+  gasReporter: {
+    enabled: process.env.REPORT_GAS !== undefined,
+    currency: "USD",
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+};

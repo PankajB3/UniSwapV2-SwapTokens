@@ -6,6 +6,7 @@
 const hre = require("hardhat");
 
 async function main() {
+  const [accounts, usr1, usr2] = await hre.ethers.getSigners();
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.
   //
@@ -20,16 +21,10 @@ async function main() {
   console.log("DAI deployed to:", dai.address);
 
   // deploy factory UniswapV2
-  const Factory = await hre.ethers.getContractFactory("FactoryV2");
-  const factory = await Factory.deploy();
+  const Factory = await hre.ethers.getContractFactory("UniswapV2Factory");
+  const factory = await Factory.deploy(accounts.address);
   await factory.deployed();
   console.log("Factory deployed to:", factory.address);
-  
-  // deploy Router UniswapV2
-  const RouterV2 = await hre.ethers.getContractFactory("RouterV2");
-  const router = await RouterV2.deploy();
-  await router.deployed();
-  console.log("RouterV2 deployed to:", router.address);
 
   // deploy WETH9
   const WETH9 = await hre.ethers.getContractFactory("WETH9");
@@ -37,16 +32,23 @@ async function main() {
   await weth.deployed();
   console.log("WETH9 deployed to:", weth.address);
 
+    
+  // deploy Router UniswapV2
+  const RouterV2 = await hre.ethers.getContractFactory("UniswapV2Router02");
+  const router = await RouterV2.deploy(factory.address, weth.address);
+  await router.deployed();
+  console.log("RouterV2 deployed to:", router.address);
+
   // deploy SwapContract
   const SwapContract = await hre.ethers.getContractFactory("SwapContract");
   const swapContract = await SwapContract.deploy(dai.address, factory.address, router.address, weth.address);
   await swapContract.deployed();
   console.log("SwapContract deployed to:", swapContract.address);
 
+console.log("\n------**********************---------\n");
 
-
-  // passing 10 ethers
-  // swapContract.addNewLiquidity(10000000000000000000);
+  // passing 10 ethers, calling from acc2
+  // swapContract.connect(acc2).addNewLiquidity(10000000000000000000);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
