@@ -13,13 +13,40 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
-  // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  // deploy DAI Contract
+  const DAI = await hre.ethers.getContractFactory("DAI");
+  const dai = await DAI.deploy();
+  await dai.deployed();
+  console.log("DAI deployed to:", dai.address);
 
-  await greeter.deployed();
+  // deploy factory UniswapV2
+  const Factory = await hre.ethers.getContractFactory("FactoryV2");
+  const factory = await Factory.deploy();
+  await factory.deployed();
+  console.log("Factory deployed to:", factory.address);
+  
+  // deploy Router UniswapV2
+  const RouterV2 = await hre.ethers.getContractFactory("RouterV2");
+  const router = await RouterV2.deploy();
+  await router.deployed();
+  console.log("RouterV2 deployed to:", router.address);
 
-  console.log("Greeter deployed to:", greeter.address);
+  // deploy WETH9
+  const WETH9 = await hre.ethers.getContractFactory("WETH9");
+  const weth = await WETH9.deploy();
+  await weth.deployed();
+  console.log("WETH9 deployed to:", weth.address);
+
+  // deploy SwapContract
+  const SwapContract = await hre.ethers.getContractFactory("SwapContract");
+  const swapContract = await SwapContract.deploy(dai.address, factory.address, router.address, weth.address);
+  await swapContract.deployed();
+  console.log("SwapContract deployed to:", swapContract.address);
+
+
+
+  // passing 10 ethers
+  // swapContract.addNewLiquidity(10000000000000000000);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
