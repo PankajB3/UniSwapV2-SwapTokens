@@ -48,7 +48,8 @@ async function main() {
 console.log("\n------**********************---------\n");
 
   // passing 10 ethers, calling from acc2
-  // swapContract.connect(acc2).addNewLiquidity(10000000000000000000);
+  dai.mint(swapContract.address, "100000000000000000000");
+  swapContract.connect(usr2).addNewLIquidity("100",{value:"1000"});
 }
 
 // We recommend this pattern to be able to use async/await everywhere
